@@ -196,7 +196,7 @@ export class TicketsServiceService implements OnModuleInit {
       .select({
         id: tickets.id,
         status: tickets.status,
-        eventId: events.id,
+        eventId: tickets.eventId,
         quantity: tickets.quantity,
       })
       .from(tickets)
