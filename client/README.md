@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EventFlow — Client
 
-## Getting Started
+The Next.js 16 frontend for the EventFlow platform. Communicates exclusively with the **API Gateway** at port 3000.
 
-First, run the development server:
+---
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) v20+
+- [pnpm](https://pnpm.io/installation) v9+
+- The API Gateway must be running at `http://localhost:3000` before you start the client.
+
+---
+
+## Step 1 — Install Dependencies
+
+From the `client/` directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If you see `ERR_PNPM_IGNORED_BUILDS`, run:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm approve-builds
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Select both `sharp` and `unrs-resolver` when prompted (these are Next.js's image optimizer and module resolver — both safe), then re-run `pnpm install`.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Step 2 — Configure Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Create a `.env.local` file in the `client/` directory:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cat > .env.local << 'EOF'
+NEXT_PUBLIC_API_BASE_URL=http://localhost:4000
+EOF
+```
 
-## Deploy on Vercel
+If `NEXT_PUBLIC_API_BASE_URL` is not set, the client defaults to `http://localhost:3000` automatically.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Step 3 — Start the Dev Server
+
+```bash
+pnpm dev
+```
+
+The app runs at [http://localhost:4000](http://localhost:4000).
+
+---
+
+## Available Scripts
+
+```bash
+pnpm dev      # Start dev server on port 4000 with hot reload
+pnpm build    # Production build
+pnpm start    # Start production server (run pnpm build first)
+pnpm lint     # ESLint check
+```
+
+---
+
+## App Structure
+
+```
+src/
+├── app/                  # Next.js App Router pages
+│   ├── (auth)/           # Auth route group (login, register)
+│   └── page.tsx          # Home page
+├── components/
+│   ├── providers.tsx     # TanStack Query + theme providers
+│   └── ui/               # shadcn/ui components
+├── features/
+│   └── auth/             # Auth feature (API calls, forms, hooks)
+├── lib/
+│   ├── api-client.ts     # Axios instance (attaches JWT, unwraps response)
+│   └── query-client.ts   # TanStack Query client config
+├── stores/
+│   ├── auth-store.ts     # Zustand auth state (token, user)
+│   └── ui-store.ts       # Zustand UI state
+└── types/                # Shared TypeScript types
+```
+
+---
+
+## How API Calls Work
+
+All requests go through `src/lib/api-client.ts`:
+
+- **Base URL:** `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:3000`)
+- **Auth:** JWT token is read from `localStorage` (`accessToken`) and attached as a `Bearer` header automatically on every request.
+- **Response unwrapping:** The interceptor unwraps the API Gateway's `{ success, data, meta }` envelope — feature code receives `data` directly.
+- **Error handling:** API error messages from the `{ error: { code, message } }` shape are extracted and attached to the thrown error object.
+
+---
+
+## Troubleshooting
+
+**Blank page or API errors on load**
+Make sure the API Gateway is running: `pnpm start:dev api-gateway` from the project root.
+
+**Login/register returns network error**
+Check that `NEXT_PUBLIC_API_BASE_URL` in `.env.local` matches where the API Gateway is listening. Restart the dev server after changing env vars.
+
+**Port 4000 already in use**
+```bash
+lsof -i :4000
+kill -9 <PID>
+```
