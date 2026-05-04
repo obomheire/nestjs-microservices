@@ -1,0 +1,316 @@
+{
+  "info": {
+    "name": "EventFlow API",
+    "description": "Complete API collection for the EventFlow platform. All requests target the API Gateway at {{base_url}} (default: http://localhost:3000).\n\nImport this collection alongside the 'EventFlow Local' environment. The login request auto-saves the access token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET / — Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] },
+            "description": "Verify the API Gateway is running."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane QA\",\n  \"email\": \"jane.qa@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Register a new user. Throttled to 3 requests per 60 seconds."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.accessToken) {",
+                  "  pm.environment.set('access_token', json.data.accessToken);",
+                  "  console.log('access_token saved:', json.data.accessToken.substring(0, 20) + '...');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.qa@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Login and retrieve a JWT. The Tests script automatically saves the token to the {{access_token}} environment variable. Throttled to 5 requests per 60 seconds."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /auth/profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/auth/profile", "host": ["{{base_url}}"], "path": ["auth", "profile"] },
+            "description": "Get the authenticated user's profile. Requires a valid JWT."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "GET /events — Get All Events",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/events", "host": ["{{base_url}}"], "path": ["events"] },
+            "description": "Retrieve all events. Public endpoint — no auth required."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/my-events — Get My Events",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/events/my-events", "host": ["{{base_url}}"], "path": ["events", "my-events"] },
+            "description": "Get events created by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /events/:id — Get Single Event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "description": "Get a single event by UUID. Public endpoint — no auth required. Set {{event_id}} in your environment."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events — Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.environment.set('event_id', json.data.id);",
+                  "  console.log('event_id saved:', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/events", "host": ["{{base_url}}"], "path": ["events"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"QA Test Event\",\n  \"description\": \"An event created during QA testing\",\n  \"date\": \"2026-12-01T18:00:00.000Z\",\n  \"location\": \"Test Venue, Manila\",\n  \"capacity\": 100,\n  \"price\": 500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Create a new event. Requires JWT. The Tests script saves the returned id to {{event_id}}. New events start with status DRAFT."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /events/:id — Update Event",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"QA Test Event — Updated\",\n  \"capacity\": 200\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Update an event. All body fields are optional. Only the event owner can update it."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:id/publish — Publish Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/publish",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "publish"]
+            },
+            "description": "Publish a DRAFT event. Required before tickets can be purchased. Only the event owner can publish."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /events/:id/cancel — Cancel Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "cancel"]
+            },
+            "description": "Cancel an event. Run this after finishing ticket tests. Only the event owner can cancel."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "POST /tickets/purchase — Purchase Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.success && json.data && json.data.id) {",
+                  "  pm.environment.set('ticket_id', json.data.id);",
+                  "  pm.environment.set('ticket_code', json.data.ticketCode);",
+                  "  console.log('ticket_id saved:', json.data.id);",
+                  "  console.log('ticket_code saved:', json.data.ticketCode);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/tickets/purchase", "host": ["{{base_url}}"], "path": ["tickets", "purchase"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{event_id}}\",\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Purchase tickets for a PUBLISHED event. Quantity must be 1–10. The Tests script saves ticket_id and ticket_code to environment variables."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tickets/my-tickets — Get My Tickets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": { "raw": "{{base_url}}/tickets/my-tickets", "host": ["{{base_url}}"], "path": ["tickets", "my-tickets"] },
+            "description": "Get all tickets belonging to the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tickets/:id — Get Single Ticket",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}"]
+            },
+            "description": "Get a single ticket by ID. Only the ticket owner can view it."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tickets/event/:eventId — Get Tickets for Event",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/event/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "event", "{{event_id}}"]
+            },
+            "description": "Get all tickets for a specific event."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tickets/check-in — Check In Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/tickets/check-in", "host": ["{{base_url}}"], "path": ["tickets", "check-in"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketCode\": \"{{ticket_code}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Check in a ticket using its unique ticket code. Sets status to CHECKED_IN. Cannot be undone."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tickets/:id/cancel — Cancel Ticket",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["tickets", "{{ticket_id}}", "cancel"]
+            },
+            "description": "Cancel a ticket. Cannot cancel an already checked-in or already cancelled ticket."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
