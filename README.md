@@ -108,17 +108,14 @@ All listed containers should show `running` or `healthy`.
 
 ## Step 4 — Run Database Migrations
 
-Apply the Drizzle ORM schema to the database:
+Generate the migration files from the schema, then apply them:
 
 ```bash
-pnpm drizzle-kit migrate
-```
-
-If that command is not available, run:
-
-```bash
+npx drizzle-kit generate
 npx drizzle-kit migrate
 ```
+
+`generate` must run first — it creates the `drizzle/migrations/` folder and `_journal.json` that `migrate` requires. If you skip it you will get a `Can't find meta/_journal.json` error.
 
 ---
 
@@ -266,6 +263,9 @@ Kafka takes ~15 seconds to start. If a service fails on boot, restart it after K
 ```bash
 docker compose restart auth-service
 ```
+
+**`Can't find meta/_journal.json` on migration**
+You skipped `generate`. Run `npx drizzle-kit generate` first, then `npx drizzle-kit migrate`.
 
 **Database migration fails**
 Confirm PostgreSQL is running and `DATABASE_URL` points to the correct host (`localhost` for local dev, `postgres` inside Docker).

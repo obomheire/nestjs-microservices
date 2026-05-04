@@ -31,12 +31,14 @@ docker compose up -d postgres redis zookeeper kafka mailhog
 
 ### Database Migrations
 
+`generate` must be run before `migrate` — `migrate` requires the `drizzle/migrations/_journal.json` file that `generate` creates.
+
 ```bash
-npx drizzle-kit generate   # Generate migration from schema changes
-npx drizzle-kit migrate    # Apply migrations to the database
+npx drizzle-kit generate   # Generate SQL migration files from schema (run first)
+npx drizzle-kit migrate    # Apply generated migrations to the database
 ```
 
-Schema lives in `libs/database/src/schema/`. Output goes to `drizzle/migrations/`.
+Schema lives in `libs/database/src/schema/`. Output goes to `drizzle/migrations/`. If `drizzle/` does not exist, the folder is created by `generate`.
 
 ### Testing
 
